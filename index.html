@@ -965,20 +965,26 @@ async function deleteTask(id, title) {
 
 async function sendPush(title, message) {
   try {
-    const { data, error } = await sb.functions.invoke('send-push', {
-      body: { title, message }
+    const response = await fetch('https://ghzcmckytkkbriokcrsx.functions.supabase.co/send-push', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ title, message })
     });
 
-    if (error) {
-      console.error('Push function error:', error);
-      alert('Push failed: ' + error.message);
+    const text = await response.text();
+
+    if (!response.ok) {
+      console.error('Push failed:', text);
+      alert('Push failed: ' + text);
       return;
     }
 
-    console.log('Push sent:', data);
+    console.log('Push sent:', text);
   } catch (err) {
     console.error('Push notification failed:', err);
-    alert('Push failed. Check console.');
+    alert('Push failed: ' + err.message);
   }
 }
   
