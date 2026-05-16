@@ -1,3 +1,5 @@
+importScripts("https://cdn.pushalert.co/sw-89399.js");
+
 self.addEventListener('install', event => {
   self.skipWaiting();
 });
