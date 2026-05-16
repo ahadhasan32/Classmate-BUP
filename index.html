@@ -963,15 +963,24 @@ async function deleteTask(id, title) {
   await loadNotices();
 }
 
- async function sendPush(title, message) {
+async function sendPush(title, message) {
   try {
-    await sb.functions.invoke('send-push', {
+    const { data, error } = await sb.functions.invoke('send-push', {
       body: { title, message }
     });
+
+    if (error) {
+      console.error('Push function error:', error);
+      alert('Push failed: ' + error.message);
+      return;
+    }
+
+    console.log('Push sent:', data);
   } catch (err) {
     console.error('Push notification failed:', err);
+    alert('Push failed. Check console.');
   }
-} 
+}
   
 async function addNotice(type, text, taskId) {
   await sb.from('notices').insert({ type, text, task_id: taskId || null, created_at: Date.now() });
