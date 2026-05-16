@@ -974,6 +974,9 @@ document.addEventListener('keydown', e => {
     closeOverlay('form-overlay');
   }
 });
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js');
+}
 </script>
 </body>
 </html>
