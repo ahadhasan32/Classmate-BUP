@@ -921,6 +921,10 @@ async function submitTask() {
         type: selTypeVal, title, details, slots,
       }).eq('id', editingTaskId);
       await addNotice('edit-task', `✏️ Updated: "${title}" (${selCourse.name} ${tm.label}). Check the app for changes.`, editingTaskId);
+      await sendPush(
+  '✏️ Task Updated',
+  `Quick change: Task details/date updated\nTitle: ${title}\nDetails: ${details || 'No details'}\nDate: ${dates}`
+);
     } else {
       const { data } = await sb.from('tasks').insert({
         course: selCourse.name, course_color: selCourse.color,
@@ -929,6 +933,10 @@ async function submitTask() {
         created_at: Date.now(),
       }).select().single();
       await addNotice('new-task', `📢 New ${tm.label}: "${title}" — ${selCourse.name}. Date(s): ${dates}`, data?.id);
+      await sendPush(
+  '📢 New Task Added',
+  `Title: ${title}\nDetails: ${details || 'No details'}\nDate: ${dates}`
+);
     }
 
     closeOverlay('form-overlay');
@@ -947,10 +955,24 @@ async function deleteTask(id, title) {
   if (!confirm(`Delete "${title}"? All students will see a notice.`)) return;
   await sb.from('tasks').delete().eq('id', id);
   await addNotice('delete-task', `🗑 Task removed: "${title}" has been deleted by CR.`, id);
+  await sendPush(
+  '🗑️ Task Removed',
+  `A task has been removed.\nTitle: ${title}\nCheck the app for updated schedule.`
+);
   await loadTasks();
   await loadNotices();
 }
 
+ async function sendPush(title, message) {
+  try {
+    await sb.functions.invoke('send-push', {
+      body: { title, message }
+    });
+  } catch (err) {
+    console.error('Push notification failed:', err);
+  }
+} 
+  
 async function addNotice(type, text, taskId) {
   await sb.from('notices').insert({ type, text, task_id: taskId || null, created_at: Date.now() });
 }
