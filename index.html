@@ -175,26 +175,48 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
     </div>
 
     <div id="student-mode">
-      <div class="field-label">Select your name</div>
-      <div class="student-list" id="student-list"></div>
-      <div class="error-msg hidden" id="student-error"></div>
-      <button class="btn primary" style="width:100%" onclick="loginStudent()">
-        Sign in as Student
-      </button>
-      <div class="cr-link">
-        <a onclick="showCRLogin()">Sign in as CR</a>
-      </div>
-    </div>
+  <div class="field">
+    <label class="field-label">Student Name</label>
+    <input id="student-name-input" placeholder="Enter your full name">
+  </div>
 
+  <div class="field">
+    <label class="field-label">Roll / ID</label>
+    <input id="student-roll-input" placeholder="Enter your roll" onkeydown="if(event.key==='Enter')loginStudent()">
+  </div>
+
+  <div class="error-msg hidden" id="student-error"></div>
+
+  <button class="btn primary" style="width:100%" onclick="loginStudent()">
+    Sign in as Student
+  </button>
+
+  <div class="cr-link">
+    <a onclick="showCRLogin()">Sign in as CR</a>
+  </div>
+</div>
     <div id="cr-mode" class="hidden">
-      <a onclick="showStudentLogin()" style="color:var(--accent);cursor:pointer;font-size:13px;display:inline-block;margin-bottom:16px">← Back</a>
-      <div class="field">
-        <label class="field-label">CR Name</label>
-        <select id="cr-name-sel">
-          <option value="Ahad Rahman">Ahad Rahman (CR)</option>
-          <option value="Rafi Hossain">Rafi Hossain (CR)</option>
-        </select>
-      </div>
+  <a onclick="showStudentLogin()" style="color:var(--accent);cursor:pointer;font-size:13px;display:inline-block;margin-bottom:16px">← Back</a>
+
+  <div class="field">
+    <label class="field-label">CR Name</label>
+    <input id="cr-name-input" placeholder="Enter your full name">
+  </div>
+
+  <div class="field">
+    <label class="field-label">Roll / ID</label>
+    <input id="cr-roll-input" placeholder="Enter your roll">
+  </div>
+
+  <div class="field">
+    <label class="field-label">CR Password</label>
+    <input type="password" id="cr-pass" placeholder="Enter CR password" onkeydown="if(event.key==='Enter')loginCR()">
+  </div>
+
+  <div class="error-msg hidden" id="cr-error"></div>
+
+  <button class="btn primary" style="width:100%" onclick="loginCR()">Sign in as CR</button>
+</div>
       <div class="field">
         <label class="field-label">Password</label>
         <input type="password" id="cr-pass" placeholder="Enter CR password" onkeydown="if(event.key==='Enter')loginCR()">
@@ -346,31 +368,67 @@ const SUPABASE_URL = 'https://ghzcmckytkkbriokcrsx.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoemNtY2t5dGtrYnJpb2tjcnN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5NDI3NzMsImV4cCI6MjA5NDUxODc3M30.PWpKkNdG4iGnsejIJVJ2QLpSTom4jW6J2e0V0sO38zU';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const CR_PASSWORD = 'cr1234'; // Change this before sharing with batch
+
 
 // ── STUDENT ROSTER ────────────────────────────────────────────────────────────
 // ADD YOUR FULL BATCH HERE — just copy the pattern
 const STUDENTS = [
-  { id:'BUP-MGT-001', name:'Ahad Rahman',     color:'#2563eb' },
-  { id:'BUP-MGT-002', name:'Nadia Islam',      color:'#16a34a' },
-  { id:'BUP-MGT-003', name:'Rafi Hossain',     color:'#d97706' },
-  { id:'BUP-MGT-004', name:'Tasin Ahmed',      color:'#9333ea' },
-  { id:'BUP-MGT-005', name:'Maliha Chowdhury', color:'#db2777' },
-  { id:'BUP-MGT-006', name:'Sabbir Khan',      color:'#0891b2' },
-  { id:'BUP-MGT-007', name:'Tanha Begum',      color:'#65a30d' },
-  { id:'BUP-MGT-008', name:'Rezaul Karim',     color:'#ea580c' },
-  { id:'BUP-MGT-009', name:'Fariha Akter',     color:'#7c3aed' },
-  { id:'BUP-MGT-010', name:'Imran Hossain',    color:'#0f766e' },
-  { id:'BUP-MGT-011', name:'Sumaiya Khanam',   color:'#b45309' },
-  { id:'BUP-MGT-012', name:'Nazmus Sakib',     color:'#1d4ed8' },
-  { id:'BUP-MGT-013', name:'Lamia Sultana',    color:'#15803d' },
-  { id:'BUP-MGT-014', name:'Mahfuz Rahman',    color:'#b91c1c' },
-  { id:'BUP-MGT-015', name:'Sadia Afrin',      color:'#6d28d9' },
-  { id:'BUP-MGT-016', name:'Arafat Hasan',     color:'#0369a1' },
-  { id:'BUP-MGT-017', name:'Trishna Roy',      color:'#047857' },
-  { id:'BUP-MGT-018', name:'Mehedi Hassan',    color:'#c2410c' },
-  { id:'BUP-MGT-019', name:'Sharmin Akter',    color:'#7e22ce' },
-  { id:'BUP-MGT-020', name:'Rakibul Islam',    color:'#0e7490' },
+   { id:'24241609061', name:'TANIM AHAMED', color:'#2563eb' },
+  { id:'25241610107', name:'SAFIA ISLAM NIRMONI', color:'#16a34a' },
+  { id:'25241610117', name:'SHARIKA TAZRIA', color:'#d97706' },
+  { id:'25241610111', name:'ZAREEFA BINTE ANOWER', color:'#9333ea' },
+  { id:'25241610121', name:'RAZZIN MUHAMMAD DILSHAN', color:'#db2777' },
+  { id:'25241610129', name:'MD. SAIFULLAH AL SAMI', color:'#0891b2' },
+  { id:'25241610155', name:'MAHMUDUL HASSAN RIFAT', color:'#65a30d' },
+  { id:'25241610161', name:'RAFIA ISLAM', color:'#ea580c' },
+  { id:'25241610169', name:'MUBTASIM FUAD', color:'#7c3aed' },
+  { id:'25241610171', name:'MD. SANJEED MAMUN JITU', color:'#0f766e' },
+  { id:'26241611005', name:'SNEHASMITA KARMAKAR', color:'#b45309' },
+  { id:'26241611021', name:'RAFIA BINTE ALI SHOPTY', color:'#1d4ed8' },
+  { id:'26241611023', name:'RAZIB HASAN', color:'#15803d' },
+  { id:'26241611029', name:'SYED RAISUL ISLAM', color:'#b91c1c' },
+  { id:'26241611031', name:'NAWMY AKTHER', color:'#6d28d9' },
+  { id:'26241611037', name:'SHAMAMA BASIR', color:'#0369a1' },
+  { id:'26241611043', name:'ROSHAN ABRAR REZA', color:'#047857' },
+  { id:'26241611049', name:'ABDULLAH AL TANJIL BHUIYAN', color:'#c2410c' },
+  { id:'26241611053', name:'ABDUL AHAD AZAD', color:'#7e22ce' },
+  { id:'26241611057', name:'TAMANNA BENTA ALAM', color:'#0e7490' },
+  { id:'26241611058', name:'TANZILA CHOWDHURY', color:'#2563eb' },
+  { id:'26241611063', name:'A.K.M.RAZIM ALAM SABIT', color:'#16a34a' },
+  { id:'26241611067', name:'ISRAT JAHAN BONNA', color:'#d97706' },
+  { id:'26241611071', name:'NAFISA ABRAR MOHOSHIN', color:'#9333ea' },
+  { id:'26241611073', name:'ZARIN TASNIA', color:'#db2777' },
+  { id:'26241611075', name:'TAHSEEN HASAN', color:'#0891b2' },
+  { id:'26241611077', name:'MD. RIFAT JAHAN', color:'#65a30d' },
+  { id:'26241611079', name:'MD. RAFIUL HASAN SEEYAM', color:'#ea580c' },
+  { id:'26241611081', name:'SUMAIYA TASNIM MUMU', color:'#7c3aed' },
+  { id:'26241611083', name:'MD.RUNAYET HAQUE', color:'#0f766e' },
+  { id:'26241611085', name:'MD. ADNAN KABIR TONMOY', color:'#b45309' },
+  { id:'26241611087', name:'MD. NAYEMUR RAHMAN', color:'#1d4ed8' },
+  { id:'26241611089', name:'ZAHRA MASUD KHAN', color:'#15803d' },
+  { id:'26241611091', name:'TOUSIF RAHMAN', color:'#b91c1c' },
+  { id:'26241611093', name:'TANZIM AHSAN TIBRO', color:'#6d28d9' },
+  { id:'26241611095', name:'ASHWAG NAZMUL ISLAM', color:'#0369a1' },
+  { id:'26241611097', name:'NUR MOHAMMAD HAKKANI', color:'#047857' },
+  { id:'26241611099', name:'JANNATUL MARUFA DIAY', color:'#c2410c' },
+  { id:'26241611105', name:'SAMIA ALAM', color:'#7e22ce' },
+  { id:'26241611107', name:'MST. TAIYEBA KAZI', color:'#0e7490' },
+  { id:'26241611115', name:'KHANDOKER SAIF AZAM ARABI', color:'#2563eb' },
+  { id:'26241611117', name:'ALIMAH MAHZABIN', color:'#16a34a' },
+  { id:'26241611119', name:'TAHSIN HOSSAIN', color:'#d97706' },
+  { id:'26241611123', name:'MD. ANAS BIN RAKIB', color:'#9333ea' },
+  { id:'26241611127', name:'FARDEEN RAHMAN BHUIYAN', color:'#db2777' },
+  { id:'26241611131', name:'SHADMAN SHAHID RAYAN', color:'#0891b2' },
+  { id:'26241611133', name:'SK. RUBAYETUZZAMAN', color:'#65a30d' },
+  { id:'26241611139', name:'HASAN MUHIT NILOY', color:'#ea580c' },
+  { id:'26241611141', name:'ANISUZZAMAN', color:'#7c3aed' },
+  { id:'26241611143', name:'MD. AZMAIN IQTIDER', color:'#0f766e' },
+  { id:'26241611145', name:'MD. SAMIN SHAHAN RAHMAN', color:'#b45309' },
+  { id:'26241611153', name:'SHAEKH AHMAD ABID JAWAD', color:'#1d4ed8' },
+  { id:'26241611155', name:'NUZHAT SAIYARA NOSHIN', color:'#15803d' },
+  { id:'26241611159', name:'TASFIA SADIQA FAIZA', color:'#b91c1c' },
+  { id:'26241611161', name:'RAHUNA AFRIN MEEM', color:'#6d28d9' },
+  { id:'26241611162', name:'BISWAS AHAD ABDULLAH HASAN', color:'#0369a1' },
   // Add more students:
   // { id:'BUP-MGT-021', name:'Full Name', color:'#2563eb' },
 ];
@@ -421,35 +479,40 @@ window.onload = () => {
 function showLogin() {
   document.getElementById('loading-screen').classList.add('hidden');
   document.getElementById('login-screen').classList.remove('hidden');
-  buildStudentList();
 }
 
-function buildStudentList() {
-  const el = document.getElementById('student-list');
-  el.innerHTML = STUDENTS.map(s => `
-    <div class="student-row" data-id="${s.id}" onclick="selectStudent(this)">
-      <div class="avatar" style="background:${s.color}">${initials(s.name)}</div>
-      <div class="student-info">
-        <strong>${s.name}</strong>
-        <small>${s.id}</small>
-      </div>
-    </div>`).join('');
-}
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
-let selectedStudentId = null;
 
-function selectStudent(el) {
-  document.querySelectorAll('.student-row').forEach(r => r.classList.remove('sel'));
-  el.classList.add('sel');
-  selectedStudentId = el.dataset.id;
-}
+
+
+const CR_IDS = ['26241611099', '26241611115', '26241611162'];
+const CR_PASSWORD = 'CR9090';
 
 function loginStudent() {
-  if (!selectedStudentId) { showError('student-error', 'Please select your name first'); return; }
-  const s = STUDENTS.find(x => x.id === selectedStudentId);
-  currentUser = s; isCR = false;
-  localStorage.setItem('cm_session', JSON.stringify({ user: s, isCR: false }));
+  const name = document.getElementById('student-name-input').value.trim().toUpperCase();
+  const roll = document.getElementById('student-roll-input').value.trim();
+
+  if (!name || !roll) {
+    showError('student-error', 'Please enter both name and roll');
+    return;
+  }
+
+  const s = STUDENTS.find(x => x.id === roll && x.name === name);
+
+  if (!s) {
+    showError('student-error', 'Name or roll does not match');
+    return;
+  }
+
+  currentUser = s;
+  isCR = false;
+
+  localStorage.setItem('cm_session', JSON.stringify({
+    user: s,
+    isCR: false
+  }));
+
   document.getElementById('login-screen').classList.add('hidden');
   startApp();
 }
@@ -458,22 +521,50 @@ function showCRLogin() {
   document.getElementById('student-mode').classList.add('hidden');
   document.getElementById('cr-mode').classList.remove('hidden');
 }
+
 function showStudentLogin() {
   document.getElementById('cr-mode').classList.add('hidden');
   document.getElementById('student-mode').classList.remove('hidden');
 }
 
 function loginCR() {
+  const name = document.getElementById('cr-name-input').value.trim().toUpperCase();
+  const roll = document.getElementById('cr-roll-input').value.trim();
   const pass = document.getElementById('cr-pass').value;
-  const name = document.getElementById('cr-name-sel').value;
-  if (pass !== CR_PASSWORD) { showError('cr-error', 'Wrong password. Try again.'); return; }
-  currentUser = { id: 'CR-' + name.split(' ')[0], name, color: '#2563eb' };
+
+  if (!name || !roll || !pass) {
+    showError('cr-error', 'Please enter name, roll and password');
+    return;
+  }
+
+  const s = STUDENTS.find(x => x.id === roll && x.name === name);
+
+  if (!s) {
+    showError('cr-error', 'Name or roll does not match');
+    return;
+  }
+
+  if (!CR_IDS.includes(roll)) {
+    showError('cr-error', 'This roll is not registered as CR');
+    return;
+  }
+
+  if (pass !== CR_PASSWORD) {
+    showError('cr-error', 'Wrong CR password');
+    return;
+  }
+
+  currentUser = s;
   isCR = true;
-  localStorage.setItem('cm_session', JSON.stringify({ user: currentUser, isCR: true }));
+
+  localStorage.setItem('cm_session', JSON.stringify({
+    user: s,
+    isCR: true
+  }));
+
   document.getElementById('login-screen').classList.add('hidden');
   startApp();
 }
-
 function logout() {
   localStorage.removeItem('cm_session');
   if (taskSub) taskSub.unsubscribe();
@@ -588,9 +679,9 @@ function renderCalendar() {
       <div class="cal-num${isToday?' today-num':''}">${d}</div>
       ${evs.slice(0,2).map(({task:t,slot:s}) => `
         <div class="cal-ev" style="background:${t.course_color}20;color:${t.course_color}"
-          onclick="openTaskDetail('${t.id}','${s.date}')" title="${t.title}">
-          ${s.label || t.course}
-        </div>`).join('')}
+  onclick="openTaskDetail('${t.id}','${s.date}')" title="${t.title}">
+  ${t.title}
+</div>`).join('')}
       ${evs.length > 2 ? `<div class="cal-more">+${evs.length-2} more</div>` : ''}
     </div>`;
   }
