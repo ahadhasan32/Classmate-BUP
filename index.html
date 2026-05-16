@@ -174,7 +174,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
       <p>MGT 11th Batch · BUP</p>
     </div>
 
-    <div id="student-mode">
+   <div id="student-mode">
   <div class="field">
     <label class="field-label">Student Name</label>
     <input id="student-name-input" placeholder="Enter your full name">
@@ -195,7 +195,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
     <a onclick="showCRLogin()">Sign in as CR</a>
   </div>
 </div>
-    <div id="cr-mode" class="hidden">
+
+<div id="cr-mode" class="hidden">
   <a onclick="showStudentLogin()" style="color:var(--accent);cursor:pointer;font-size:13px;display:inline-block;margin-bottom:16px">← Back</a>
 
   <div class="field">
@@ -217,13 +218,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 
   <button class="btn primary" style="width:100%" onclick="loginCR()">Sign in as CR</button>
 </div>
-      <div class="field">
-        <label class="field-label">Password</label>
-        <input type="password" id="cr-pass" placeholder="Enter CR password" onkeydown="if(event.key==='Enter')loginCR()">
-      </div>
-      <div class="error-msg hidden" id="cr-error"></div>
-      <button class="btn primary" style="width:100%" onclick="loginCR()">Sign in as CR</button>
-    </div>
   </div>
 </div>
 
