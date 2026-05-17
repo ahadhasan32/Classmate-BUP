@@ -287,7 +287,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
   <div class="content hidden" id="tab-tasks">
   <div class="field">
     <label class="field-label">Filter by subject</label>
-    <select id="subject-filter" onchange="renderTaskList()">
+    <select id="subject-filter" onchange="renderTaskList(false)">
       <option value="all">All subjects</option>
     </select>
   </div>
@@ -730,9 +730,8 @@ function renderSubjectFilter() {
   filter.value = courseNames.includes(current) ? current : 'all';
 }
 // ── TASK LIST ─────────────────────────────────────────────────────────────────
-function renderTaskList() {
- renderSubjectFilter();
-
+function renderTaskList(updateFilter = true) {
+  if (updateFilter) renderSubjectFilter();
 const selectedSubject = document.getElementById('subject-filter')?.value || 'all';
 
 const filteredTasks = selectedSubject === 'all'
