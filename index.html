@@ -932,27 +932,7 @@ function openTaskDetail(taskId, highlightDate) {
       <span class="chip" style="background:${t.course_color}18;color:${t.course_color}">${t.course}</span>
       <span class="chip" style="background:${tm.color}15;color:${tm.color}">${tm.icon} ${tm.label}</span>
     </div>
-    <div style="margin-bottom:14px">
-      <div class="field-label">Date(s)</div>
-      ${(t.slots||[]).map(s => `
-        <div style="background:var(--surface2);border:1px solid ${s.date===highlightDate?'var(--accent)':'var(--border)'};border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:13px">
-          📅 ${s.label?'<strong>'+s.label+'</strong> — ':''}${s.date}
-        </div>`).join('')}
-    </div>
     
-    <input id="upload-group-${t.id}" placeholder="Group name or your name">
-  </div>
-
-  <div class="field">
-    <input type="file" id="upload-file-${t.id}">
-  </div>
-
-  <button class="btn primary" style="width:100%" onclick="uploadMaterial('${t.id}')">
-    Upload Material
-  </button>
-</div>
-
-<div id="uploads-${t.id}" style="margin-top:14px"></div>
     ${t.details ? `
       <div class="field-label">Details & what to cover</div>
       <div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:13px;color:var(--muted);line-height:1.6;white-space:pre-wrap">${t.details}</div>
