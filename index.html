@@ -285,9 +285,15 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 
   <!-- TASKS TAB -->
   <div class="content hidden" id="tab-tasks">
-    <div id="task-list"></div>
+  <div class="field">
+    <label class="field-label">Filter by subject</label>
+    <select id="subject-filter" onchange="renderTaskList()">
+      <option value="all">All subjects</option>
+    </select>
   </div>
 
+  <div id="task-list"></div>
+</div>
   <!-- NOTICES TAB -->
   <div class="content hidden" id="tab-notices">
     <div id="notice-list"></div>
@@ -708,10 +714,32 @@ function renderCalendar() {
 
   grid.innerHTML = h;
 }
+function renderSubjectFilter() {
+  const filter = document.getElementById('subject-filter');
+  if (!filter) return;
 
+  const current = filter.value || 'all';
+
+  const courseNames = [...new Set(tasks.map(t => t.course))].sort();
+
+  filter.innerHTML = `
+    <option value="all">All subjects</option>
+    ${courseNames.map(c => `<option value="${c}">${c}</option>`).join('')}
+  `;
+
+  filter.value = courseNames.includes(current) ? current : 'all';
+}
 // ── TASK LIST ─────────────────────────────────────────────────────────────────
 function renderTaskList() {
-  const sorted = [...tasks].sort((a,b) => {
+ renderSubjectFilter();
+
+const selectedSubject = document.getElementById('subject-filter')?.value || 'all';
+
+const filteredTasks = selectedSubject === 'all'
+  ? tasks
+  : tasks.filter(t => t.course === selectedSubject);
+
+const sorted = [...filteredTasks].sort((a,b) => {
     const da = earliestDate(a), db = earliestDate(b);
     return da > db ? 1 : -1;
   });
