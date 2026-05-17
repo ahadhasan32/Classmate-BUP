@@ -20,6 +20,17 @@
   --radius:10px;--shadow:0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.06);
   --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
 }
+  body.dark{
+  --bg:#0f172a;
+  --surface:#111827;
+  --surface2:#1f2937;
+  --border:#374151;
+  --text:#f9fafb;
+  --muted:#9ca3af;
+  --accent:#60a5fa;
+  --accent-light:rgba(96,165,250,0.12);
+  --shadow:0 1px 3px rgba(0,0,0,0.35);
+}
 body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
 .hidden{display:none!important}
 
@@ -239,6 +250,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
   <div class="topbar">
     <div class="topbar-logo">Class<span>Mate</span></div>
     <div class="topbar-right">
+      <button class="btn sm" onclick="toggleDarkMode()" id="theme-toggle">🌙</button>
       <span id="user-label" style="font-size:12px;color:var(--muted)"></span>
       <button class="btn sm" id="add-task-btn" onclick="openAddTask()" style="display:none">+ Add task</button>
       <button class="btn sm" onclick="logout()">Sign out</button>
@@ -466,6 +478,7 @@ let taskSub = null, noticeSub = null, courseSub = null;
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 window.onload = () => {
+  applySavedTheme();
   const today = new Date();
   calYear = today.getFullYear();
   calMonth = today.getMonth();
@@ -1026,6 +1039,21 @@ document.addEventListener('keydown', e => {
 });
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js');
+}
+function applySavedTheme() {
+  const theme = localStorage.getItem('cm_theme') || 'light';
+  document.body.classList.toggle('dark', theme === 'dark');
+
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+
+function toggleDarkMode() {
+  const isDark = document.body.classList.toggle('dark');
+  localStorage.setItem('cm_theme', isDark ? 'dark' : 'light');
+
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = isDark ? '☀️' : '🌙';
 }
 </script>
 </body>
