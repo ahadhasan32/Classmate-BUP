@@ -295,9 +295,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
   <div id="task-list"></div>
 </div>
   <!-- NOTICES TAB -->
-  <div class="content hidden" id="tab-notices">
-    <div id="notice-list"></div>
-  </div>
+ <div class="content hidden" id="tab-notices">
+  <button class="btn sm" onclick="clearNotices()" style="margin-bottom:12px;width:100%">
+    Clear notices
+  </button>
+
+  <div id="notice-list"></div>
 </div>
 
 <!-- TASK DETAIL SHEET -->
@@ -798,7 +801,19 @@ function daysChip(dl) {
 }
 
 // ── NOTICES ───────────────────────────────────────────────────────────────────
-function renderNotices() {
+function clearNotices() {
+  if (!confirm('Clear all notices from your view?')) return;
+
+  notices.forEach(n => readIds.add(n.id));
+  localStorage.setItem('cm_read', JSON.stringify([...readIds]));
+
+  notices = [];
+  unreadCount = 0;
+
+  document.getElementById('notice-badge').classList.add('hidden');
+  renderNotices();
+}
+  function renderNotices() {
   const el = document.getElementById('notice-list');
   if (!notices.length) {
     el.innerHTML = `<div class="empty">🔔<p>No notices yet</p></div>`;
