@@ -205,8 +205,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
   </div>
 
   <div class="field">
-    <label class="field-label">Roll / ID</label>
-    <input id="student-roll-input" placeholder="Enter your roll" onkeydown="if(event.key==='Enter')loginStudent()">
+    <label class="field-label">Password</label>
+<input type="password" id="student-pass-input" placeholder="Enter your password" onkeydown="if(event.key==='Enter')loginStudent()">
+      
   </div>
 
   <div class="error-msg hidden" id="student-error"></div>
@@ -413,64 +414,69 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // ── STUDENT ROSTER ────────────────────────────────────────────────────────────
 // ADD YOUR FULL BATCH HERE — just copy the pattern
 const STUDENTS = [
-   { id:'24241609061', name:'TANIM AHAMED', color:'#2563eb' },
-  { id:'25241610107', name:'SAFIA ISLAM NIRMONI', color:'#16a34a' },
-  { id:'25241610117', name:'SHARIKA TAZRIA', color:'#d97706' },
-  { id:'25241610111', name:'ZAREEFA BINTE ANOWER', color:'#9333ea' },
-  { id:'25241610121', name:'RAZZIN MUHAMMAD DILSHAN', color:'#db2777' },
-  { id:'25241610129', name:'MD. SAIFULLAH AL SAMI', color:'#0891b2' },
-  { id:'25241610155', name:'MAHMUDUL HASSAN RIFAT', color:'#65a30d' },
-  { id:'25241610161', name:'RAFIA ISLAM', color:'#ea580c' },
-  { id:'25241610169', name:'MUBTASIM FUAD', color:'#7c3aed' },
-  { id:'25241610171', name:'MD. SANJEED MAMUN JITU', color:'#0f766e' },
-  { id:'26241611005', name:'SNEHASMITA KARMAKAR', color:'#b45309' },
-  { id:'26241611021', name:'RAFIA BINTE ALI SHOPTY', color:'#1d4ed8' },
-  { id:'26241611023', name:'RAZIB HASAN', color:'#15803d' },
-  { id:'26241611029', name:'SYED RAISUL ISLAM', color:'#b91c1c' },
-  { id:'26241611031', name:'NAWMY AKTHER', color:'#6d28d9' },
-  { id:'26241611037', name:'SHAMAMA BASIR', color:'#0369a1' },
-  { id:'26241611043', name:'ROSHAN ABRAR REZA', color:'#047857' },
-  { id:'26241611049', name:'ABDULLAH AL TANJIL BHUIYAN', color:'#c2410c' },
-  { id:'26241611053', name:'ABDUL AHAD AZAD', color:'#7e22ce' },
-  { id:'26241611057', name:'TAMANNA BENTA ALAM', color:'#0e7490' },
-  { id:'26241611058', name:'TANZILA CHOWDHURY', color:'#2563eb' },
-  { id:'26241611063', name:'A.K.M.RAZIM ALAM SABIT', color:'#16a34a' },
-  { id:'26241611067', name:'ISRAT JAHAN BONNA', color:'#d97706' },
-  { id:'26241611071', name:'NAFISA ABRAR MOHOSHIN', color:'#9333ea' },
-  { id:'26241611073', name:'ZARIN TASNIA', color:'#db2777' },
-  { id:'26241611075', name:'TAHSEEN HASAN', color:'#0891b2' },
-  { id:'26241611077', name:'MD. RIFAT JAHAN', color:'#65a30d' },
-  { id:'26241611079', name:'MD. RAFIUL HASAN SEEYAM', color:'#ea580c' },
-  { id:'26241611081', name:'SUMAIYA TASNIM MUMU', color:'#7c3aed' },
-  { id:'26241611083', name:'MD.RUNAYET HAQUE', color:'#0f766e' },
-  { id:'26241611085', name:'MD. ADNAN KABIR TONMOY', color:'#b45309' },
-  { id:'26241611087', name:'MD. NAYEMUR RAHMAN', color:'#1d4ed8' },
-  { id:'26241611089', name:'ZAHRA MASUD KHAN', color:'#15803d' },
-  { id:'26241611091', name:'TOUSIF RAHMAN', color:'#b91c1c' },
-  { id:'26241611093', name:'TANZIM AHSAN TIBRO', color:'#6d28d9' },
-  { id:'26241611095', name:'ASHWAG NAZMUL ISLAM', color:'#0369a1' },
-  { id:'26241611097', name:'NUR MOHAMMAD HAKKANI', color:'#047857' },
-  { id:'26241611099', name:'JANNATUL MARUFA DIAY', color:'#c2410c' },
-  { id:'26241611105', name:'SAMIA ALAM', color:'#7e22ce' },
-  { id:'26241611107', name:'MST. TAIYEBA KAZI', color:'#0e7490' },
-  { id:'26241611115', name:'KHANDOKER SAIF AZAM ARABI', color:'#2563eb' },
-  { id:'26241611117', name:'ALIMAH MAHZABIN', color:'#16a34a' },
-  { id:'26241611119', name:'TAHSIN HOSSAIN', color:'#d97706' },
-  { id:'26241611123', name:'MD. ANAS BIN RAKIB', color:'#9333ea' },
-  { id:'26241611127', name:'FARDEEN RAHMAN BHUIYAN', color:'#db2777' },
-  { id:'26241611131', name:'SHADMAN SHAHID RAYAN', color:'#0891b2' },
-  { id:'26241611133', name:'SK. RUBAYETUZZAMAN', color:'#65a30d' },
-  { id:'26241611139', name:'HASAN MUHIT NILOY', color:'#ea580c' },
-  { id:'26241611141', name:'ANISUZZAMAN', color:'#7c3aed' },
-  { id:'26241611143', name:'MD. AZMAIN IQTIDER', color:'#0f766e' },
-  { id:'26241611145', name:'MD. SAMIN SHAHAN RAHMAN', color:'#b45309' },
-  { id:'26241611153', name:'SHAEKH AHMAD ABID JAWAD', color:'#1d4ed8' },
-  { id:'26241611155', name:'NUZHAT SAIYARA NOSHIN', color:'#15803d' },
-  { id:'26241611159', name:'TASFIA SADIQA FAIZA', color:'#b91c1c' },
-  { id:'26241611161', name:'RAHUNA AFRIN MEEM', color:'#6d28d9' },
-  { id:'26241611162', name:'BISWAS AHAD ABDULLAH HASAN', color:'#0369a1' },
+  { id:'24241609061', name:'TANIM AHAMED', pass:'BUP5831', color:'#2563eb' },
+  { id:'25241610107', name:'SAFIA ISLAM NIRMONI', pass:'BUP2746', color:'#16a34a' },
+  { id:'25241610117', name:'SHARIKA TAZRIA', pass:'BUP9184', color:'#d97706' },
+  { id:'25241610111', name:'ZAREEFA BINTE ANOWER', pass:'BUP6419', color:'#9333ea' },
+  { id:'25241610121', name:'RAZZIN MUHAMMAD DILSHAN', pass:'BUP3572', color:'#db2777' },
+  { id:'25241610129', name:'MD. SAIFULLAH AL SAMI', pass:'BUP8265', color:'#0891b2' },
+  { id:'25241610155', name:'MAHMUDUL HASSAN RIFAT', pass:'BUP1947', color:'#65a30d' },
+  { id:'25241610161', name:'RAFIA ISLAM', pass:'BUP7038', color:'#ea580c' },
+  { id:'25241610169', name:'MUBTASIM FUAD', pass:'BUP4821', color:'#7c3aed' },
+  { id:'25241610171', name:'MD. SANJEED MAMUN JITU', pass:'BUP9357', color:'#0f766e' },
+
+  { id:'26241611005', name:'SNEHASMITA KARMAKAR', pass:'BUP2684', color:'#b45309' },
+  { id:'26241611021', name:'RAFIA BINTE ALI SHOPTY', pass:'BUP7512', color:'#1d4ed8' },
+  { id:'26241611023', name:'RAZIB HASAN', pass:'BUP4309', color:'#15803d' },
+  { id:'26241611029', name:'SYED RAISUL ISLAM', pass:'BUP6843', color:'#b91c1c' },
+  { id:'26241611031', name:'NAWMY AKTHER', pass:'BUP1276', color:'#6d28d9' },
+  { id:'26241611037', name:'SHAMAMA BASIR', pass:'BUP8941', color:'#0369a1' },
+  { id:'26241611043', name:'ROSHAN ABRAR REZA', pass:'BUP3158', color:'#047857' },
+  { id:'26241611049', name:'ABDULLAH AL TANJIL BHUIYAN', pass:'BUP5624', color:'#c2410c' },
+  { id:'26241611053', name:'ABDUL AHAD AZAD', pass:'BUP7403', color:'#7e22ce' },
+  { id:'26241611057', name:'TAMANNA BENTA ALAM', pass:'BUP1985', color:'#0e7490' },
+
+  { id:'26241611058', name:'TANZILA CHOWDHURY', pass:'BUP6237', color:'#2563eb' },
+  { id:'26241611063', name:'A.K.M.RAZIM ALAM SABIT', pass:'BUP8740', color:'#16a34a' },
+  { id:'26241611067', name:'ISRAT JAHAN BONNA', pass:'BUP2491', color:'#d97706' },
+  { id:'26241611071', name:'NAFISA ABRAR MOHOSHIN', pass:'BUP5317', color:'#9333ea' },
+  { id:'26241611073', name:'ZARIN TASNIA', pass:'BUP9628', color:'#db2777' },
+  { id:'26241611075', name:'TAHSEEN HASAN', pass:'BUP4065', color:'#0891b2' },
+  { id:'26241611077', name:'MD. RIFAT JAHAN', pass:'BUP7139', color:'#65a30d' },
+  { id:'26241611079', name:'MD. RAFIUL HASAN SEEYAM', pass:'BUP2854', color:'#ea580c' },
+  { id:'26241611081', name:'SUMAIYA TASNIM MUMU', pass:'BUP6480', color:'#7c3aed' },
+  { id:'26241611083', name:'MD.RUNAYET HAQUE', pass:'BUP1572', color:'#0f766e' },
+
+  { id:'26241611085', name:'MD. ADNAN KABIR TONMOY', pass:'BUP8906', color:'#b45309' },
+  { id:'26241611087', name:'MD. NAYEMUR RAHMAN', pass:'BUP3648', color:'#1d4ed8' },
+  { id:'26241611089', name:'ZAHRA MASUD KHAN', pass:'BUP5214', color:'#15803d' },
+  { id:'26241611091', name:'TOUSIF RAHMAN', pass:'BUP9073', color:'#b91c1c' },
+  { id:'26241611093', name:'TANZIM AHSAN TIBRO', pass:'BUP4385', color:'#6d28d9' },
+  { id:'26241611095', name:'ASHWAG NAZMUL ISLAM', pass:'BUP1764', color:'#0369a1' },
+  { id:'26241611097', name:'NUR MOHAMMAD HAKKANI', pass:'BUP8521', color:'#047857' },
+  { id:'26241611099', name:'JANNATUL MARUFA DIAY', pass:'BUP6942', color:'#c2410c' },
+  { id:'26241611105', name:'SAMIA ALAM', pass:'BUP3207', color:'#7e22ce' },
+  { id:'26241611107', name:'MST. TAIYEBA KAZI', pass:'BUP5816', color:'#0e7490' },
+
+  { id:'26241611115', name:'KHANDOKER SAIF AZAM ARABI', pass:'BUP2479', color:'#2563eb' },
+  { id:'26241611117', name:'ALIMAH MAHZABIN', pass:'BUP7391', color:'#16a34a' },
+  { id:'26241611119', name:'TAHSIN HOSSAIN', pass:'BUP4652', color:'#d97706' },
+  { id:'26241611123', name:'MD. ANAS BIN RAKIB', pass:'BUP9180', color:'#9333ea' },
+  { id:'26241611127', name:'FARDEEN RAHMAN BHUIYAN', pass:'BUP3528', color:'#db2777' },
+  { id:'26241611131', name:'SHADMAN SHAHID RAYAN', pass:'BUP6407', color:'#0891b2' },
+  { id:'26241611133', name:'SK. RUBAYETUZZAMAN', pass:'BUP2845', color:'#65a30d' },
+  { id:'26241611139', name:'HASAN MUHIT NILOY', pass:'BUP7951', color:'#ea580c' },
+  { id:'26241611141', name:'ANISUZZAMAN', pass:'BUP5136', color:'#7c3aed' },
+  { id:'26241611143', name:'MD. AZMAIN IQTIDER', pass:'BUP8614', color:'#0f766e' },
+
+  { id:'26241611145', name:'MD. SAMIN SHAHAN RAHMAN', pass:'BUP2075', color:'#b45309' },
+  { id:'26241611153', name:'SHAEKH AHMAD ABID JAWAD', pass:'BUP9482', color:'#1d4ed8' },
+  { id:'26241611155', name:'NUZHAT SAIYARA NOSHIN', pass:'BUP3761', color:'#15803d' },
+  { id:'26241611159', name:'TASFIA SADIQA FAIZA', pass:'BUP6248', color:'#b91c1c' },
+  { id:'26241611161', name:'RAHUNA AFRIN MEEM', pass:'BUP8157', color:'#6d28d9' },
+  { id:'26241611162', name:'BISWAS AHAD ABDULLAH HASAN', pass:'BUP4920', color:'#0369a1' },
   // Add more students:
-  // { id:'BUP-MGT-021', name:'Full Name', color:'#2563eb' },
+  // { id:'BUP-MGT-021', name:'Full Name', pass:'BUP9090', color:'#2563eb' },
 ];
 
 const TYPE_META = {
@@ -534,17 +540,17 @@ const CR_PASSWORD = 'CR9090';
 
 function loginStudent() {
   const name = document.getElementById('student-name-input').value.trim().toUpperCase();
-  const roll = document.getElementById('student-roll-input').value.trim();
+  const pass = document.getElementById('student-pass-input').value.trim();
 
-  if (!name || !roll) {
-    showError('student-error', 'Please enter both name and roll');
+  if (!name || !pass) {
+    showError('student-error', 'Please enter name and password');
     return;
   }
 
-  const s = STUDENTS.find(x => x.id === roll && x.name === name);
+  const s = STUDENTS.find(x => x.name === name && x.pass === pass);
 
   if (!s) {
-    showError('student-error', 'Name or roll does not match');
+    showError('student-error', 'Name or password does not match');
     return;
   }
 
