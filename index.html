@@ -260,6 +260,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
   <div class="tabs" id="tabs">
     <div class="tab on" data-tab="calendar" onclick="switchTab('calendar')">📅 Calendar</div>
     <div class="tab" data-tab="tasks" onclick="switchTab('tasks')">📋 Tasks</div>
+    <div class="tab" data-tab="chat" onclick="switchTab('chat')">💬 Chat</div>
     <div class="tab" data-tab="notices" onclick="switchTab('notices')">
       🔔 Notices
       <div class="tab-badge hidden" id="notice-badge">0</div>
@@ -293,6 +294,17 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
   </div>
 
   <div id="task-list"></div>
+</div>
+<!-- CHAT TAB -->
+<div class="content hidden" id="tab-chat">
+  <div id="chat-list" style="margin-bottom:80px"></div>
+
+  <div style="position:sticky;bottom:0;background:var(--bg);padding-top:10px">
+    <div class="field-row">
+      <input id="chat-input" placeholder="Write a message..." onkeydown="if(event.key==='Enter')sendChatMessage()">
+      <button class="btn primary" onclick="sendChatMessage()">Send</button>
+    </div>
+  </div>
 </div>
   <!-- NOTICES TAB -->
  <div class="content hidden" id="tab-notices">
@@ -476,6 +488,8 @@ let isCR = false;
 let tasks = [];
 let notices = [];
 let courses = [];
+let chatMessages = [];
+let chatSub = null;  
 let unreadCount = 0;
 let readIds = new Set(JSON.parse(localStorage.getItem('cm_read') || '[]'));
 let calYear, calMonth;
@@ -599,6 +613,7 @@ function logout() {
   if (taskSub) taskSub.unsubscribe();
   if (noticeSub) noticeSub.unsubscribe();
   if (courseSub) courseSub.unsubscribe();
+  if (chatSub) chatSub.unsubscribe();
   location.reload();
 }
 
@@ -629,9 +644,14 @@ function subscribeAll() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'courses' }, () => loadCourses())
     .subscribe();
 
+chatSub = sb.channel('chat-channel')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, () => loadChatMessages())
+  .subscribe();
+  
   loadTasks();
-  loadNotices();
-  loadCourses();
+loadNotices();
+loadCourses();
+loadChatMessages();
 }
 
 async function loadTasks() {
@@ -659,7 +679,7 @@ async function loadCourses() {
 // ── TABS ──────────────────────────────────────────────────────────────────────
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === tab));
-  ['calendar','tasks','notices'].forEach(t => {
+  ['calendar','tasks','chat','notices'].forEach(t => {
     document.getElementById('tab-' + t).classList.toggle('hidden', t !== tab);
   });
   if (tab === 'notices') markAllRead();
@@ -800,7 +820,68 @@ function daysChip(dl) {
   return `<span class="days-chip" style="background:#f0fdf4;color:#16a34a">${dl}d left</span>`;
 }
 
-// ── NOTICES ───────────────────────────────────────────────────────────────────
+async function loadChatMessages() {
+  const { data } = await sb
+    .from('chat_messages')
+    .select('*')
+    .order('created_at', { ascending: true })
+    .limit(100);
+
+  chatMessages = data || [];
+  renderChatMessages();
+}
+
+function renderChatMessages() {
+  const el = document.getElementById('chat-list');
+  if (!el) return;
+
+  if (!chatMessages.length) {
+    el.innerHTML = `<div class="empty">💬<p>No messages yet. Start the batch chaos.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = chatMessages.map(m => `
+    <div class="card" style="${m.sender_is_cr ? 'border-color:var(--accent);background:var(--accent-light)' : ''}">
+      <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px">
+        <strong style="font-size:13px">
+          ${m.sender_name}
+          ${m.sender_is_cr ? '<span class="chip" style="background:var(--accent);color:white;margin-left:6px">CR</span>' : ''}
+        </strong>
+        <span style="font-size:11px;color:var(--muted)">${timeAgo(m.created_at)}</span>
+      </div>
+      <div style="white-space:pre-wrap;font-size:13px">${m.message}</div>
+    </div>
+  `).join('');
+
+  el.scrollTop = el.scrollHeight;
+}
+
+async function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  const message = input.value.trim();
+
+  if (!message) return;
+
+  input.value = '';
+
+  await sb.from('chat_messages').insert({
+    sender_id: currentUser.id,
+    sender_name: currentUser.name,
+    sender_is_cr: isCR,
+    message,
+    created_at: Date.now()
+  });
+
+  if (isCR) {
+    await sendPush(
+      '💬 New CR Message',
+      `${currentUser.name}: ${message}`
+    );
+  }
+
+  await loadChatMessages();
+}
+  // ── NOTICES ───────────────────────────────────────────────────────────────────
 function clearNotices() {
   if (!confirm('Clear all notices from your view?')) return;
 
