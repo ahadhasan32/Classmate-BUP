@@ -1326,7 +1326,10 @@ async function deleteTask(id, title) {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ title, message })
+      body: JSON.stringify({
+  title: title.slice(0, 64),
+  message: message.slice(0, 190)
+})
     });
 
     const text = await response.text();
