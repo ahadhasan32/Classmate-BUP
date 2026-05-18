@@ -953,9 +953,17 @@ async function sendChatMessage() {
     created_at: Date.now()
   });
 
-  async function deleteChatMessage(messageId) {
-    alert('Delete clicked: ' + messageId);
+  if (isCR) {
+    await sendPush(
+      '💬 New CR Message',
+      `${currentUser.name}: ${message}`
+    );
+  }
 
+  await loadChatMessages();
+}
+
+async function deleteChatMessage(messageId) {
   if (!isCR) return;
 
   if (!confirm('Delete this chat message for everyone?')) return;
@@ -974,10 +982,6 @@ async function sendChatMessage() {
     console.error(error);
     return;
   }
-
-  console.log('Deleted message:', data);
-  await loadChatMessages();
-}
 
   await loadChatMessages();
 }
