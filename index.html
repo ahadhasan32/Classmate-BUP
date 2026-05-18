@@ -1092,13 +1092,29 @@ function openEditTask(taskId) {
 // Course chips
 function renderCourseChips() {
   const el = document.getElementById('course-chips');
-  if (!courses.length) { el.innerHTML = '<span style="font-size:12px;color:var(--muted)">No courses yet — add one below</span>'; return; }
+
+  if (!courses.length) {
+    el.innerHTML = '<span style="font-size:12px;color:var(--muted)">No courses yet — add one below</span>';
+    return;
+  }
+
   el.innerHTML = courses.map(c => `
     <div class="course-chip ${selCourse?.name===c.name?'sel':''}"
-      style="${selCourse?.name===c.name ? 'border-color:'+c.color+';background:'+c.color+'15;color:'+c.color : ''}"
-      onclick="pickCourse('${c.name}','${c.color}')">
-      <div class="dot" style="background:${c.color}"></div>${c.name}
-    </div>`).join('');
+      style="${selCourse?.name===c.name ? 'border-color:'+c.color+';background:'+c.color+'15;color:'+c.color : ''}">
+      
+      <span onclick="pickCourse('${c.name}','${c.color}')" style="display:flex;align-items:center;gap:5px;cursor:pointer">
+        <div class="dot" style="background:${c.color}"></div>${c.name}
+      </span>
+
+      ${isCR ? `
+        <button 
+          onclick="event.stopPropagation(); editCourse('${c.name}', '${c.color}')"
+          style="border:none;background:none;color:var(--accent);cursor:pointer;font-size:12px;padding-left:4px">
+          Edit
+        </button>
+      ` : ''}
+    </div>
+  `).join('');
 }
 
 function pickCourse(name, color) { selCourse = { name, color }; renderCourseChips(); }
@@ -1113,6 +1129,54 @@ async function addCourse() {
   courses.push({ name, color });
   pickCourse(name, color);
   document.getElementById('new-course-input').value = '';
+  renderCourseChips();
+}
+  async function editCourse(oldName, oldColor) {
+  if (!isCR) return;
+
+  const newName = prompt('Edit course name:', oldName);
+  if (!newName) return;
+
+  const cleanName = newName.trim().toUpperCase();
+  if (!cleanName) return;
+
+  const newColor = prompt('Edit course color hex:', oldColor);
+  if (!newColor) return;
+
+  const cleanColor = newColor.trim();
+
+  // Create/update course
+  await sb.from('courses').upsert({
+    name: cleanName,
+    color: cleanColor
+  });
+
+  // Delete old course if renamed
+  if (cleanName !== oldName) {
+    await sb.from('courses')
+      .delete()
+      .eq('name', oldName);
+  }
+
+  // Update all tasks using this course
+  await sb.from('tasks')
+    .update({
+      course: cleanName,
+      course_color: cleanColor
+    })
+    .eq('course', oldName);
+
+  // Update selected course
+  if (selCourse?.name === oldName) {
+    selCourse = {
+      name: cleanName,
+      color: cleanColor
+    };
+  }
+
+  await loadCourses();
+  await loadTasks();
+
   renderCourseChips();
 }
 
