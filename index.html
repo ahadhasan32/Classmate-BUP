@@ -261,8 +261,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
   <div class="tabs" id="tabs">
     <div class="tab on" data-tab="calendar" onclick="switchTab('calendar')">📅 Calendar</div>
     <div class="tab" data-tab="tasks" onclick="switchTab('tasks')">📋 Tasks</div>
+    <div class="tab" data-tab="events" onclick="switchTab('events')">🎓 Events</div>
     <div class="tab" data-tab="chat" onclick="switchTab('chat')">💬 Chat</div>
     <div class="tab" data-tab="notices" onclick="switchTab('notices')">
+      
       🔔 Notices
       <div class="tab-badge hidden" id="notice-badge">0</div>
     </div>
@@ -295,6 +297,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
   </div>
 
   <div id="task-list"></div>
+</div>
+  <!-- EVENTS TAB -->
+<div class="content hidden" id="tab-events">
+  <div id="event-list"></div>
 </div>
 <!-- CHAT TAB -->
 <div class="content hidden" id="tab-chat">
@@ -685,7 +691,7 @@ async function loadCourses() {
 // ── TABS ──────────────────────────────────────────────────────────────────────
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === tab));
-  ['calendar','tasks','chat','notices'].forEach(t => {
+  ['calendar','tasks','events','chat','notices'].forEach(t => {
     document.getElementById('tab-' + t).classList.toggle('hidden', t !== tab);
   });
   if (tab === 'notices') markAllRead();
