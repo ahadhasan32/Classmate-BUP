@@ -500,6 +500,8 @@ let isCR = false;
 let tasks = [];
 let notices = [];
 let courses = [];
+let calendarEvents = [];
+let eventSub = null;
 let chatMessages = [];
 let chatSub = null;  
 let unreadCount = 0;
@@ -541,7 +543,7 @@ function showLogin() {
 
 
 
-const CR_IDS = ['26241611099', '26241611115', '26241611162'];
+const CR_IDS = ['26241611099', '26241611115', '26241611162', '26241611081'];
 const CR_PASSWORD = 'CR9090';
 
 function loginStudent() {
@@ -626,6 +628,7 @@ function logout() {
   if (noticeSub) noticeSub.unsubscribe();
   if (courseSub) courseSub.unsubscribe();
   if (chatSub) chatSub.unsubscribe();
+  if (eventSub) eventSub.unsubscribe();
   location.reload();
 }
 
@@ -650,6 +653,9 @@ function subscribeAll() {
   noticeSub = sb.channel('notices-channel')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'notices' }, () => loadNotices())
     .subscribe();
+    eventSub = sb.channel('events-channel')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, () => loadCalendarEvents())
+  .subscribe();
 
   // Courses
   courseSub = sb.channel('courses-channel')
@@ -663,6 +669,7 @@ chatSub = sb.channel('chat-channel')
   loadTasks();
 loadNotices();
 loadCourses();
+loadCalendarEvents();
 loadChatMessages();
 }
 
@@ -726,7 +733,24 @@ function renderCalendar() {
       if (!evMap[s.date]) evMap[s.date] = [];
       evMap[s.date].push({ task: t, slot: s });
     });
+  })
+  calendarEvents.forEach(e => {
+  (e.slots || []).forEach(s => {
+    if (!evMap[s.date]) evMap[s.date] = [];
+    evMap[s.date].push({
+      task: {
+        id: e.id,
+        title: e.title,
+        course: e.type,
+        course_color: e.color,
+        type: 'event',
+        details: e.details,
+        slots: e.slots
+      },
+      slot: s
+    });
   });
+});;
 
   let h = DAYS.map(d => `<div class="cal-head">${d}</div>`).join('');
 
@@ -764,6 +788,39 @@ function renderSubjectFilter() {
 
   filter.value = courseNames.includes(current) ? current : 'all';
 }
+
+async function loadCalendarEvents() {
+  const { data } = await sb
+    .from('calendar_events')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  calendarEvents = data || [];
+  renderEventsList();
+  renderCalendar();
+}
+
+function renderEventsList() {
+  const el = document.getElementById('event-list');
+  if (!el) return;
+
+  if (!calendarEvents.length) {
+    el.innerHTML = `<div class="empty">🎓<p>No academic events yet.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = calendarEvents.map(e => `
+    <div class="card">
+      <div class="card-title">${e.title}</div>
+      <div class="task-chips">
+        <span class="chip" style="background:${e.color}18;color:${e.color}">${e.type}</span>
+      </div>
+      ${e.details ? `<div style="font-size:13px;color:var(--muted);margin-bottom:8px">${e.details}</div>` : ''}
+      ${(e.slots || []).map(s => `<div class="slot-line">📅 ${s.date}</div>`).join('')}
+    </div>
+  `).join('');
+}
+
 // ── TASK LIST ─────────────────────────────────────────────────────────────────
 function renderTaskList(updateFilter = true) {
   if (updateFilter) renderSubjectFilter();
@@ -861,7 +918,19 @@ function renderChatMessages() {
         </strong>
         <span style="font-size:11px;color:var(--muted)">${timeAgo(m.created_at)}</span>
       </div>
-      <div style="white-space:pre-wrap;font-size:13px">${m.message}</div>
+
+      ${
+        m.is_deleted
+          ? `<div style="font-size:13px;color:var(--muted);font-style:italic">
+              🗑️ Message deleted by ${m.deleted_by || 'CR'}
+            </div>`
+          : `<div style="white-space:pre-wrap;font-size:13px">${m.message}</div>
+             ${isCR ? `
+               <button class="btn sm" style="margin-top:10px;color:var(--danger)" onclick="deleteChatMessage('${m.id}')">
+                 Delete message
+               </button>
+             ` : ''}`
+      }
     </div>
   `).join('');
 
@@ -883,7 +952,21 @@ async function sendChatMessage() {
     message,
     created_at: Date.now()
   });
+async function deleteChatMessage(messageId) {
+  if (!isCR) return;
 
+  if (!confirm('Delete this chat message for everyone?')) return;
+
+  await sb.from('chat_messages')
+    .update({
+      is_deleted: true,
+      deleted_by: currentUser.name,
+      deleted_at: Date.now()
+    })
+    .eq('id', messageId);
+
+  await loadChatMessages();
+}
   if (isCR) {
     await sendPush(
       '💬 New CR Message',
