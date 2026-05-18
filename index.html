@@ -952,27 +952,30 @@ async function sendChatMessage() {
     message,
     created_at: Date.now()
   });
-async function deleteChatMessage(messageId) {
+
+  async function deleteChatMessage(messageId) {
   if (!isCR) return;
 
   if (!confirm('Delete this chat message for everyone?')) return;
 
-  await sb.from('chat_messages')
+  const { data, error } = await sb.from('chat_messages')
     .update({
       is_deleted: true,
       deleted_by: currentUser.name,
       deleted_at: Date.now()
     })
-    .eq('id', messageId);
+    .eq('id', messageId)
+    .select();
 
+  if (error) {
+    alert('Delete failed: ' + error.message);
+    console.error(error);
+    return;
+  }
+
+  console.log('Deleted message:', data);
   await loadChatMessages();
 }
-  if (isCR) {
-    await sendPush(
-      '💬 New CR Message',
-      `${currentUser.name}: ${message}`
-    );
-  }
 
   await loadChatMessages();
 }
