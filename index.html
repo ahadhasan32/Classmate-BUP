@@ -926,7 +926,7 @@ function renderChatMessages() {
             </div>`
           : `<div style="white-space:pre-wrap;font-size:13px">${m.message}</div>
              ${isCR ? `
-               <button class="btn sm" style="margin-top:10px;color:var(--danger)" onclick="deleteChatMessage('${m.id}')">
+               <button class="btn sm" style="margin-top:10px;color:var(--danger)" onclick="event.stopPropagation(); deleteChatMessage('${m.id}')">
                  Delete message
                </button>
              ` : ''}`
@@ -954,6 +954,8 @@ async function sendChatMessage() {
   });
 
   async function deleteChatMessage(messageId) {
+    alert('Delete clicked: ' + messageId);
+
   if (!isCR) return;
 
   if (!confirm('Delete this chat message for everyone?')) return;
