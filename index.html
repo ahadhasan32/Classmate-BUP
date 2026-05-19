@@ -1076,7 +1076,166 @@ async function openAiTest(testId) {
 
   aiQuestions = data || [];
 
-  alert(`${test.title}\n\nQuestions loaded: ${aiQuestions.length}\n\nNext phase: exam-taking screen.`);
+  const box = document.getElementById('test-list');
+
+  box.innerHTML = `
+    <div class="card">
+      <div class="card-title">${test.title}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+        ⚠️ AI-generated questions can make mistakes. Verify important answers with class materials.
+      </div>
+
+      ${aiQuestions.map((q, i) => `
+        <div class="card" style="box-shadow:none">
+          <div style="font-weight:600;margin-bottom:8px">Q${i + 1}. ${q.question}</div>
+
+          ${
+            q.question_type === 'mcq'
+              ? (q.options || []).map(opt => `
+                <label style="display:block;margin:6px 0">
+                  <input type="radio" name="q-${q.id}" value="${opt}">
+                  ${opt}
+                </label>
+              `).join('')
+              : `<textarea id="q-${q.id}" placeholder="Write your answer..." style="width:100%;min-height:80px"></textarea>`
+          }
+        </div>
+      `).join('')}
+
+      <button class="btn primary" style="width:100%" onclick="submitAiTest('${test.id}')">
+        Submit Test
+      </button>
+
+      <button class="btn" style="width:100%;margin-top:8px" onclick="loadAiTests()">
+        Back to Tests
+      </button>
+    </div>
+  `;
+}
+
+async function submitAiTest(testId) {
+  let score = 0;
+  let total = aiQuestions.length;
+  let answers = [];
+  let feedbackLines = [];
+
+  for (const q of aiQuestions) {
+    let userAnswer = '';
+
+    if (q.question_type === 'mcq') {
+      const selected = document.querySelector(`input[name="q-${q.id}"]:checked`);
+      userAnswer = selected ? selected.value : '';
+
+      const correct = userAnswer.trim().toLowerCase() === q.correct_answer.trim().toLowerCase();
+
+      if (correct) score += 1;
+
+      answers.push({
+        question_id: q.id,
+        type: q.question_type,
+        answer: userAnswer,
+        correct_answer: q.correct_answer,
+        is_correct: correct
+      });
+
+      feedbackLines.push(
+        `${correct ? '✅' : '❌'} ${q.question}\nYour answer: ${userAnswer || 'No answer'}\nCorrect answer: ${q.correct_answer}\n${q.explanation || ''}`
+      );
+    } else {
+      const textarea = document.getElementById(`q-${q.id}`);
+      userAnswer = textarea ? textarea.value.trim() : '';
+
+      const shortResult = await gradeShortAnswer(q.question, q.correct_answer, userAnswer);
+
+      score += shortResult.score;
+
+      answers.push({
+        question_id: q.id,
+        type: q.question_type,
+        answer: userAnswer,
+        correct_answer: q.correct_answer,
+        score: shortResult.score
+      });
+
+      feedbackLines.push(
+        `${shortResult.score >= 1 ? '✅' : shortResult.score > 0 ? '🟡' : '❌'} ${q.question}\nYour answer: ${userAnswer || 'No answer'}\nIdeal answer: ${q.correct_answer}\nFeedback: ${shortResult.feedback}`
+      );
+    }
+  }
+
+  const feedback = feedbackLines.join('\n\n');
+
+  await sb.from('ai_attempts').insert({
+    test_id: testId,
+    student_id: currentUser.id,
+    student_name: currentUser.name,
+    answers,
+    score,
+    total,
+    feedback,
+    created_at: Date.now()
+  });
+
+  alert(`Submitted!\nScore: ${score}/${total}`);
+
+  showAiResult(score, total, feedback);
+}
+
+async function gradeShortAnswer(question, idealAnswer, userAnswer) {
+  if (!userAnswer) {
+    return {
+      score: 0,
+      feedback: 'No answer given.'
+    };
+  }
+
+  const userWords = userAnswer.toLowerCase().split(/\s+/);
+  const idealWords = idealAnswer.toLowerCase().split(/\s+/);
+
+  const importantWords = idealWords.filter(w => w.length > 4);
+  const matched = importantWords.filter(w => userWords.includes(w));
+
+  const ratio = importantWords.length ? matched.length / importantWords.length : 0;
+
+  if (ratio >= 0.5) {
+    return {
+      score: 1,
+      feedback: 'Your answer is close enough to the ideal answer.'
+    };
+  }
+
+  if (ratio >= 0.25) {
+    return {
+      score: 0.5,
+      feedback: 'Partially correct, but missing important points.'
+    };
+  }
+
+  return {
+    score: 0,
+    feedback: 'Not close enough to the expected answer.'
+  };
+}
+
+function showAiResult(score, total, feedback) {
+  const box = document.getElementById('test-list');
+
+  box.innerHTML = `
+    <div class="card">
+      <div class="card-title">Your Result</div>
+      <div style="font-size:22px;font-weight:600;margin:12px 0">
+        ${score}/${total}
+      </div>
+
+      <div style="white-space:pre-wrap;font-size:13px;color:var(--muted);line-height:1.6">
+        ${feedback}
+      </div>
+
+      <button class="btn primary" style="width:100%;margin-top:14px" onclick="loadAiTests()">
+        Back to Tests
+      </button>
+    </div>
+  `;
 }
 
 async function loadChatMessages() {
