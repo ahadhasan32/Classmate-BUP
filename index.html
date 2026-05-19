@@ -722,7 +722,7 @@ loadNotices();
 loadCourses();
 loadCalendarEvents();
 loadChatMessages();
-
+loadAiTests();
 }
 
 async function loadTasks() {
@@ -754,7 +754,6 @@ function switchTab(tab) {
     document.getElementById('tab-' + t).classList.toggle('hidden', t !== tab);
   });
   if (tab === 'notices') markAllRead();
-  if (tab === 'tests') loadAiTests();
 }
 
 function markAllRead() {
@@ -1018,7 +1017,7 @@ async function createAiTest() {
   btn.textContent = 'Generating… this may take a bit';
 
   try {
-    const res = await fetch('http://localhost:3001/generate-test', {
+    const res = await fetch('https://ghzcmckytkkbriokcrsx.functions.supabase.co/generate-ai-test', {
       method: 'POST',
       body: formData
     });
@@ -1026,43 +1025,11 @@ async function createAiTest() {
     const data = await res.json();
 
     if (!data.success) {
-  showError('ai-test-error', data.error || 'AI generation failed');
-  alert(data.error || 'AI generation failed');
+  const msg = data.error || JSON.stringify(data) || 'AI generation failed';
+  showError('ai-test-error', msg);
+  alert(msg);
+  console.error('AI ERROR:', data);
   return;
-}
-
-const { data: test, error: testError } = await sb.from('ai_tests').insert({
-  title: data.title,
-  source_file_name: data.source_file_name,
-  question_count: Number(questionCount),
-  difficulty,
-  created_by_id: currentUser.id,
-  created_by_name: currentUser.name,
-  is_published: true,
-  created_at: Date.now()
-}).select().single();
-
-if (testError) {
-  showError('ai-test-error', testError.message);
-  return;
-}
-
-const questions = data.questions.map(q => ({
-  test_id: test.id,
-  question_type: q.type === 'short' ? 'short' : 'mcq',
-  question: q.question,
-  options: q.type === 'short' ? [] : q.options,
-  correct_answer: q.correct_answer,
-  explanation: q.explanation,
-  points: 1,
-  created_at: Date.now()
-}));
-
-await sb.from('ai_questions').insert(questions);
-
-alert('AI test created successfully!');
-fileInput.value = '';
-await loadAiTests();
 }
     alert('AI test created successfully!');
     fileInput.value = '';
