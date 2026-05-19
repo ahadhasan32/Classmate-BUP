@@ -262,6 +262,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
     <div class="tab on" data-tab="calendar" onclick="switchTab('calendar')">📅 Calendar</div>
     <div class="tab" data-tab="tasks" onclick="switchTab('tasks')">📋 Tasks</div>
     <div class="tab" data-tab="events" onclick="switchTab('events')">🎓 Events</div>
+    <div class="tab" data-tab="tests" onclick="switchTab('tests')">🧠 Tests</div>
     <div class="tab" data-tab="chat" onclick="switchTab('chat')">💬 Chat</div>
     <div class="tab" data-tab="notices" onclick="switchTab('notices')">
       
@@ -302,6 +303,49 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 <div class="content hidden" id="tab-events">
   <div id="event-list"></div>
 </div>
+
+<!-- TESTS TAB -->
+<div class="content hidden" id="tab-tests">
+  <div id="test-create-box" class="card hidden">
+    <div class="card-title">Create AI Mini Exam</div>
+
+    <div class="field">
+      <label class="field-label">Upload PDF / slides</label>
+      <input type="file" id="ai-test-file" accept=".pdf,.ppt,.pptx,.doc,.docx">
+    </div>
+
+    <div class="field">
+      <label class="field-label">Question count</label>
+      <select id="ai-question-count">
+        <option value="10">10 Questions</option>
+        <option value="20">20 Questions</option>
+        <option value="30">30 Questions</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Difficulty</label>
+      <select id="ai-difficulty">
+        <option value="Easy">Easy</option>
+        <option value="Medium" selected>Medium</option>
+        <option value="Hard">Hard</option>
+      </select>
+    </div>
+
+    <button class="btn primary" style="width:100%" onclick="createAiTest()">
+      Generate AI Test
+    </button>
+
+    <div class="error-msg hidden" id="ai-test-error"></div>
+  </div>
+
+  <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+    ⚠️ AI-generated questions can contain mistakes. Always verify important answers with your class materials.
+  </div>
+
+  <div id="test-list"></div>
+</div>
+
 <!-- CHAT TAB -->
 <div class="content hidden" id="tab-chat">
   <div id="chat-list" style="margin-bottom:80px"></div>
@@ -503,6 +547,9 @@ let courses = [];
 let calendarEvents = [];
 let eventSub = null;
 let chatMessages = [];
+let aiTests = [];
+let aiQuestions = [];
+let testSub = null;
 let chatSub = null;  
 let unreadCount = 0;
 let readIds = new Set(JSON.parse(localStorage.getItem('cm_read') || '[]'));
@@ -629,6 +676,7 @@ function logout() {
   if (courseSub) courseSub.unsubscribe();
   if (chatSub) chatSub.unsubscribe();
   if (eventSub) eventSub.unsubscribe();
+  if (testSub) testSub.unsubscribe();
   location.reload();
 }
 
@@ -665,12 +713,16 @@ function subscribeAll() {
 chatSub = sb.channel('chat-channel')
   .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, () => loadChatMessages())
   .subscribe();
+testSub = sb.channel('tests-channel')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_tests' }, () => loadAiTests())
+  .subscribe();
   
   loadTasks();
 loadNotices();
 loadCourses();
 loadCalendarEvents();
 loadChatMessages();
+loadAiTests();
 }
 
 async function loadTasks() {
@@ -698,7 +750,7 @@ async function loadCourses() {
 // ── TABS ──────────────────────────────────────────────────────────────────────
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === tab));
-  ['calendar','tasks','events','chat','notices'].forEach(t => {
+  ['calendar','tasks','events','tests','chat','notices'].forEach(t => {
     document.getElementById('tab-' + t).classList.toggle('hidden', t !== tab);
   });
   if (tab === 'notices') markAllRead();
@@ -887,6 +939,144 @@ function daysChip(dl) {
   if (dl === 1) return `<span class="days-chip" style="background:#fef2f2;color:#dc2626">Tomorrow</span>`;
   if (dl <= 3)  return `<span class="days-chip" style="background:#fffbeb;color:#b45309">${dl}d left</span>`;
   return `<span class="days-chip" style="background:#f0fdf4;color:#16a34a">${dl}d left</span>`;
+}
+
+
+async function loadAiTests() {
+  const { data } = await sb
+    .from('ai_tests')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  aiTests = data || [];
+  renderAiTests();
+}
+
+function renderAiTests() {
+  const createBox = document.getElementById('test-create-box');
+  if (createBox) createBox.classList.toggle('hidden', !isCR);
+
+  const el = document.getElementById('test-list');
+  if (!el) return;
+
+  const publishedTests = isCR ? aiTests : aiTests.filter(t => t.is_published);
+
+  if (!publishedTests.length) {
+    el.innerHTML = `<div class="empty">🧠<p>No AI tests yet.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = publishedTests.map(t => `
+    <div class="card clickable" onclick="openAiTest('${t.id}')">
+      <div class="card-title">${t.title}</div>
+      <div class="task-chips">
+        <span class="chip" style="background:var(--accent-light);color:var(--accent)">${t.question_count} Questions</span>
+        <span class="chip">${t.difficulty}</span>
+        ${t.is_published ? '<span class="chip" style="background:#f0fdf4;color:#16a34a">Published</span>' : '<span class="chip" style="background:#fef2f2;color:#dc2626">Hidden</span>'}
+      </div>
+      <div style="font-size:12px;color:var(--muted)">Created by ${t.created_by_name || 'CR'} · ${timeAgo(t.created_at)}</div>
+
+      ${isCR ? `
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn sm" onclick="event.stopPropagation();editAiTestTitle('${t.id}','${escQ(t.title)}')">Edit title</button>
+          <button class="btn sm" onclick="event.stopPropagation();toggleAiTest('${t.id}',${t.is_published})">
+            ${t.is_published ? 'Hide' : 'Publish'}
+          </button>
+        </div>
+      ` : ''}
+    </div>
+  `).join('');
+}
+
+async function createAiTest() {
+  if (!isCR) return;
+
+  const fileInput = document.getElementById('ai-test-file');
+  const errorEl = document.getElementById('ai-test-error');
+
+  const file = fileInput.files[0];
+  const questionCount = document.getElementById('ai-question-count').value;
+  const difficulty = document.getElementById('ai-difficulty').value;
+
+  if (!file) {
+    showError('ai-test-error', 'Please upload a PDF or slide file');
+    return;
+  }
+
+  hideError('ai-test-error');
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('question_count', questionCount);
+  formData.append('difficulty', difficulty);
+  formData.append('created_by_id', currentUser.id);
+  formData.append('created_by_name', currentUser.name);
+
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Generating… this may take a bit';
+
+  try {
+    const res = await fetch('https://ghzcmckytkkbriokcrsx.functions.supabase.co/generate-ai-test', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      showError('ai-test-error', data.error || 'AI generation failed');
+      return;
+    }
+
+    alert('AI test created successfully!');
+    fileInput.value = '';
+    await loadAiTests();
+
+  } catch (err) {
+    showError('ai-test-error', err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Generate AI Test';
+  }
+}
+
+async function editAiTestTitle(testId, oldTitle) {
+  if (!isCR) return;
+
+  const title = prompt('Edit test title:', oldTitle);
+  if (!title) return;
+
+  await sb.from('ai_tests')
+    .update({ title: title.trim() })
+    .eq('id', testId);
+
+  await loadAiTests();
+}
+
+async function toggleAiTest(testId, currentStatus) {
+  if (!isCR) return;
+
+  await sb.from('ai_tests')
+    .update({ is_published: !currentStatus })
+    .eq('id', testId);
+
+  await loadAiTests();
+}
+
+async function openAiTest(testId) {
+  const test = aiTests.find(t => t.id === testId);
+  if (!test) return;
+
+  const { data } = await sb
+    .from('ai_questions')
+    .select('*')
+    .eq('test_id', testId)
+    .order('created_at', { ascending: true });
+
+  aiQuestions = data || [];
+
+  alert(`${test.title}\n\nQuestions loaded: ${aiQuestions.length}\n\nNext phase: exam-taking screen.`);
 }
 
 async function loadChatMessages() {
