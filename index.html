@@ -1026,6 +1026,8 @@ async function createAiTest() {
 
     if (!data.success) {
       showError('ai-test-error', data.error || 'AI generation failed');
+alert(data.error || 'AI generation failed');
+console.error('AI ERROR:', data);
       return;
     }
 
