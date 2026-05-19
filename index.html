@@ -722,7 +722,7 @@ loadNotices();
 loadCourses();
 loadCalendarEvents();
 loadChatMessages();
-loadAiTests();
+
 }
 
 async function loadTasks() {
@@ -754,6 +754,7 @@ function switchTab(tab) {
     document.getElementById('tab-' + t).classList.toggle('hidden', t !== tab);
   });
   if (tab === 'notices') markAllRead();
+  if (tab === 'tests') loadAiTests();
 }
 
 function markAllRead() {
