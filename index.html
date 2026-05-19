@@ -1025,19 +1025,22 @@ async function createAiTest() {
     const data = await res.json();
 
     if (!data.success) {
-      showError('ai-test-error', data.error || 'AI generation failed');
-alert(data.error || 'AI generation failed');
-console.error('AI ERROR:', data);
-      return;
-    }
-
+  const msg = data.error || JSON.stringify(data) || 'AI generation failed';
+  showError('ai-test-error', msg);
+  alert(msg);
+  console.error('AI ERROR:', data);
+  return;
+}
     alert('AI test created successfully!');
     fileInput.value = '';
     await loadAiTests();
 
   } catch (err) {
-    showError('ai-test-error', err.message);
-  } finally {
+  alert('Frontend error: ' + err.message);
+  showError('ai-test-error', err.message);
+  console.error(err);
+}
+   finally {
     btn.disabled = false;
     btn.textContent = 'Generate AI Test';
   }
