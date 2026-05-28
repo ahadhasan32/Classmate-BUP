@@ -1073,104 +1073,125 @@ async function openAiTest(testId) {
   const test = aiTests.find(t => t.id === testId);
   if (!test) return;
 
-  const { data } = await sb
+  const el = document.getElementById('test-list');
+  el.innerHTML = `<div class="card"><div class="spinner" style="margin:0 auto"></div></div>`;
+
+  const { data: questions, error } = await sb
     .from('ai_questions')
     .select('*')
     .eq('test_id', testId)
     .order('created_at', { ascending: true });
 
-  aiQuestions = data || [];
+  if (error || !questions?.length) {
+    el.innerHTML = `<div class="card"><p style="color:var(--danger)">Failed to load questions.</p></div>`;
+    return;
+  }
 
-  const box = document.getElementById('test-list');
+  // Check if student already attempted
+  const { data: attempt } = await sb
+    .from('ai_attempts')
+    .select('id, score, total, feedback')
+    .eq('test_id', testId)
+    .eq('student_id', currentUser.id)
+    .maybeSingle();
 
-  box.innerHTML = `
-    <div class="card">
-      <div class="card-title">${test.title}</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
-        ⚠️ AI-generated questions can make mistakes. Verify important answers with class materials.
-      </div>
+  if (attempt && !isCR) {
+    showAiResult(attempt.score, attempt.total, attempt.feedback, testId);
+    return;
+  }
 
-      ${aiQuestions.map((q, i) => `
-        <div class="card" style="box-shadow:none">
-          <div style="font-weight:600;margin-bottom:8px">Q${i + 1}. ${q.question}</div>
-
-          ${
-            q.question_type === 'mcq'
-              ? (q.options || []).map(opt => `
-                <label style="display:block;margin:6px 0">
-                  <input type="radio" name="q-${q.id}" value="${opt}">
-                  ${opt}
-                </label>
-              `).join('')
-              : `<textarea id="q-${q.id}" placeholder="Write your answer..." style="width:100%;min-height:80px"></textarea>`
-          }
-        </div>
-      `).join('')}
-
-      <button class="btn primary" style="width:100%" onclick="submitAiTest('${test.id}')">
-        Submit Test
-      </button>
-
-      <button class="btn" style="width:100%;margin-top:8px" onclick="loadAiTests()">
-        Back to Tests
-      </button>
+  el.innerHTML = `
+    <div style="margin-bottom:12px">
+      <button class="btn sm" onclick="loadAiTests()">← Back</button>
     </div>
+    <div class="card" style="margin-bottom:10px">
+      <div class="card-title">${test.title}</div>
+      <div style="font-size:12px;color:var(--muted)">
+        ${questions.length} questions · ${test.difficulty} · Select one answer per question
+      </div>
+    </div>
+
+    ${questions.map((q, i) => `
+      <div class="card" id="qcard-${q.id}">
+        <div style="font-weight:500;margin-bottom:10px;font-size:13px">
+          <span style="color:var(--accent);font-weight:600">Q${i + 1}.</span> ${q.question}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          ${(q.options || []).map(opt => `
+            <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;transition:background .1s"
+              onmouseover="this.style.background='var(--accent-light)'"
+              onmouseout="this.style.background=''"
+            >
+              <input type="radio" name="q-${q.id}" value="${escQ(opt)}"
+                style="width:auto;height:auto;margin-top:2px;flex-shrink:0;accent-color:var(--accent)">
+              <span>${opt}</span>
+            </label>
+          `).join('')}
+        </div>
+      </div>
+    `).join('')}
+
+    <div class="error-msg hidden" id="submit-error">Please answer all questions before submitting.</div>
+
+    <button class="btn primary submit-btn" onclick="submitAiTest('${testId}', ${JSON.stringify(questions).replace(/"/g, '&quot;')})">
+      Submit Test
+    </button>
+    <button class="btn" style="width:100%;margin-top:8px" onclick="loadAiTests()">
+      Cancel
+    </button>
   `;
 }
 
-async function submitAiTest(testId) {
-  let score = 0;
-  let total = aiQuestions.length;
-  let answers = [];
-  let feedbackLines = [];
+async function submitAiTest(testId, questions) {
+  // Validate all answered
+  const unanswered = questions.filter(q =>
+    !document.querySelector(`input[name="q-${q.id}"]:checked`)
+  );
 
-  for (const q of aiQuestions) {
-    let userAnswer = '';
-
-    if (q.question_type === 'mcq') {
-      const selected = document.querySelector(`input[name="q-${q.id}"]:checked`);
-      userAnswer = selected ? selected.value : '';
-
-      const correct = userAnswer.trim().toLowerCase() === q.correct_answer.trim().toLowerCase();
-
-      if (correct) score += 1;
-
-      answers.push({
-        question_id: q.id,
-        type: q.question_type,
-        answer: userAnswer,
-        correct_answer: q.correct_answer,
-        is_correct: correct
-      });
-
-      feedbackLines.push(
-        `${correct ? '✅' : '❌'} ${q.question}\nYour answer: ${userAnswer || 'No answer'}\nCorrect answer: ${q.correct_answer}\n${q.explanation || ''}`
-      );
-    } else {
-      const textarea = document.getElementById(`q-${q.id}`);
-      userAnswer = textarea ? textarea.value.trim() : '';
-
-      const shortResult = await gradeShortAnswer(q.question, q.correct_answer, userAnswer);
-
-      score += shortResult.score;
-
-      answers.push({
-        question_id: q.id,
-        type: q.question_type,
-        answer: userAnswer,
-        correct_answer: q.correct_answer,
-        score: shortResult.score
-      });
-
-      feedbackLines.push(
-        `${shortResult.score >= 1 ? '✅' : shortResult.score > 0 ? '🟡' : '❌'} ${q.question}\nYour answer: ${userAnswer || 'No answer'}\nIdeal answer: ${q.correct_answer}\nFeedback: ${shortResult.feedback}`
-      );
-    }
+  if (unanswered.length > 0) {
+    // Highlight unanswered
+    unanswered.forEach(q => {
+      const card = document.getElementById('qcard-' + q.id);
+      if (card) card.style.borderColor = 'var(--danger)';
+    });
+    document.getElementById('submit-error').classList.remove('hidden');
+    document.getElementById('submit-error').textContent =
+      `Please answer all questions. ${unanswered.length} unanswered.`;
+    return;
   }
 
-  const feedback = feedbackLines.join('\n\n');
+  let score = 0;
+  const answers = [];
+  const feedbackLines = [];
 
-  await sb.from('ai_attempts').insert({
+  for (const q of questions) {
+    const selected = document.querySelector(`input[name="q-${q.id}"]:checked`);
+    const userAnswer = selected ? selected.value : '';
+    const isCorrect = userAnswer.trim().toLowerCase() === q.correct_answer.trim().toLowerCase();
+
+    if (isCorrect) score++;
+
+    answers.push({
+      question_id: q.id,
+      question: q.question,
+      user_answer: userAnswer,
+      correct_answer: q.correct_answer,
+      is_correct: isCorrect
+    });
+
+    feedbackLines.push(JSON.stringify({
+      q: q.question,
+      your: userAnswer,
+      correct: q.correct_answer,
+      ok: isCorrect,
+      explain: q.explanation || ''
+    }));
+  }
+
+  const total = questions.length;
+  const feedback = feedbackLines.join('||');
+
+  const { error } = await sb.from('ai_attempts').insert({
     test_id: testId,
     student_id: currentUser.id,
     student_name: currentUser.name,
@@ -1181,67 +1202,69 @@ async function submitAiTest(testId) {
     created_at: Date.now()
   });
 
-  alert(`Submitted!\nScore: ${score}/${total}`);
+  if (error) {
+    alert('Could not save attempt: ' + error.message);
+    return;
+  }
 
-  showAiResult(score, total, feedback);
+  showAiResult(score, total, feedback, testId);
 }
 
-async function gradeShortAnswer(question, idealAnswer, userAnswer) {
-  if (!userAnswer) {
-    return {
-      score: 0,
-      feedback: 'No answer given.'
-    };
-  }
+function showAiResult(score, total, feedback, testId) {
+  const pct = Math.round((score / total) * 100);
+  const grade = pct >= 80 ? { label: 'Excellent', color: '#16a34a' }
+              : pct >= 60 ? { label: 'Good', color: '#2563eb' }
+              : pct >= 40 ? { label: 'Needs Work', color: '#d97706' }
+              : { label: 'Try Again', color: '#dc2626' };
 
-  const userWords = userAnswer.toLowerCase().split(/\s+/);
-  const idealWords = idealAnswer.toLowerCase().split(/\s+/);
+  // Parse feedback lines
+  let lines = [];
+  try {
+    lines = feedback.split('||').map(f => JSON.parse(f));
+  } catch {}
 
-  const importantWords = idealWords.filter(w => w.length > 4);
-  const matched = importantWords.filter(w => userWords.includes(w));
-
-  const ratio = importantWords.length ? matched.length / importantWords.length : 0;
-
-  if (ratio >= 0.5) {
-    return {
-      score: 1,
-      feedback: 'Your answer is close enough to the ideal answer.'
-    };
-  }
-
-  if (ratio >= 0.25) {
-    return {
-      score: 0.5,
-      feedback: 'Partially correct, but missing important points.'
-    };
-  }
-
-  return {
-    score: 0,
-    feedback: 'Not close enough to the expected answer.'
-  };
-}
-
-function showAiResult(score, total, feedback) {
-  const box = document.getElementById('test-list');
-
-  box.innerHTML = `
-    <div class="card">
-      <div class="card-title">Your Result</div>
-      <div style="font-size:22px;font-weight:600;margin:12px 0">
-        ${score}/${total}
-      </div>
-
-      <div style="white-space:pre-wrap;font-size:13px;color:var(--muted);line-height:1.6">
-        ${feedback}
-      </div>
-
-      <button class="btn primary" style="width:100%;margin-top:14px" onclick="loadAiTests()">
-        Back to Tests
-      </button>
+  const el = document.getElementById('test-list');
+  el.innerHTML = `
+    <div style="margin-bottom:12px">
+      <button class="btn sm" onclick="loadAiTests()">← Back to Tests</button>
     </div>
+
+    <div class="card" style="text-align:center;padding:24px 16px;margin-bottom:12px">
+      <div style="font-size:14px;color:var(--muted);margin-bottom:8px">Your Score</div>
+      <div style="font-size:48px;font-weight:700;color:${grade.color};line-height:1">${score}/${total}</div>
+      <div style="font-size:22px;font-weight:600;color:${grade.color};margin-top:4px">${pct}%</div>
+      <div class="chip" style="background:${grade.color}18;color:${grade.color};margin-top:10px;font-size:13px;padding:5px 14px">
+        ${grade.label}
+      </div>
+    </div>
+
+    <div class="card-title" style="margin-bottom:10px;padding-left:4px">Answer Review</div>
+
+    ${lines.map((l, i) => `
+      <div class="card" style="border-left:3px solid ${l.ok ? '#16a34a' : '#dc2626'}">
+        <div style="font-weight:500;font-size:13px;margin-bottom:8px">
+          ${l.ok ? '✅' : '❌'} Q${i + 1}. ${l.q}
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:3px">
+          Your answer: <span style="color:${l.ok ? '#16a34a' : '#dc2626'};font-weight:500">${l.your || 'No answer'}</span>
+        </div>
+        ${!l.ok ? `
+          <div style="font-size:12px;color:var(--muted);margin-bottom:3px">
+            Correct: <span style="color:#16a34a;font-weight:500">${l.correct}</span>
+          </div>
+        ` : ''}
+        ${l.explain ? `
+          <div style="font-size:12px;color:var(--muted);margin-top:5px;padding-top:5px;border-top:1px solid var(--border)">
+            💡 ${l.explain}
+          </div>
+        ` : ''}
+      </div>
+    `).join('')}
+
+    <button class="btn" style="width:100%;margin-top:4px" onclick="loadAiTests()">Done</button>
   `;
 }
+
 
 async function loadChatMessages() {
   const { data } = await sb
